@@ -1,5 +1,6 @@
 # .gitignore entires specific to our project ########################################
 *.pyc
+**/*.pyc
 *.DS_Store
 __pycache__/*
 db.sqlite3
