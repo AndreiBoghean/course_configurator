@@ -6,7 +6,8 @@ const constraints = [
   ['Tennis', 'Climbing'],
   ['Handstands', 'Climbing'],
   ['Trapeze', 'Tennis'],
-  ['Tennis', 'Handstands', 'Trapeze']
+  ['Tennis', 'Handstands', 'Trapeze'],
+  (timetable) => timetable["8:00"].indexOf("Climbing") === -1 ? ["Climbing"] : []
 ]
 
 data = {              // Object which represents the specification of the problem
