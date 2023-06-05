@@ -6,9 +6,9 @@ import unicodedata
 """ here is a rought outline of the json datastructure we aim to create:
 
 courses = [
-    "course name": "name",
-    "course code": "code",
-    "selectables": [
+    "code": "name",
+    "title": "code",
+    "classes": [
         "class": "class code",
         "section": "section title (eg lb01)",
         "status": status (closed/open/etc.),
