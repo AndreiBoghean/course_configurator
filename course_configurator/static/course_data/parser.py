@@ -3,6 +3,7 @@ import requests
 import xml.etree.ElementTree as ET # used to parse the xml and retrieve the html we're interested in
 from bs4 import BeautifulSoup # used to parse the html
 import unicodedata
+import time
 """ here is a rought outline of the json datastructure we aim to create:
 
 courses = [
@@ -37,13 +38,39 @@ which will itself be envoloped by a <tr> tag.
 sibling to this <tr> is a <tr> which is used to hold the different classes for the respective course
 """
 
+# takes a course object and converts the dates and times for it's classes to be more computer readable (converted to use unix timestamps + minutes duration)
+def convert_course_date(course):
+    for course_class in course["classes"]:
+        for meeting in course_class["meetings"]:
+            old_dates = meeting["dates"] # for reference: expected format is "DD/MM/YY - DD/MM/YY"
+            old_times = meeting["times"] # for reference: expected format is "XX  HH:mm - HH:mm" (XX is the 2 letter abreviation of the name of the weekday)
+
+            # parse dates ########################
+            if old_dates != "TBA":
+                def do_the_thing(str):
+                    str = str.split("/")
+                    return int(time.mktime( (int(str[2]), int(str[1]), int(str[0]), 0, 0, 0, 0, 0, 0) ))
+
+                start, end = old_dates.split(" - ") # split the start and end range
+
+                meeting["datesUNIX"] = {"start": do_the_thing(start), "end": do_the_thing(end)}
+            
+            # parse times ########################
+            if (old_times != "TBA"):
+                # TODO: wrap this part of parsing in a try except block with the apropriate error name for then the time is TBA
+                start, end = old_times[4:].split(" - ")
+                
+                meeting["timesUNIX"] = {"start": start, "end": end}
+
+
+
 def parseXML(xmlfilename):
     courses = []
 
     # initial html parsing
     item = ET.parse(xmlfilename).getroot().findall("./")[6]
     soup = BeautifulSoup(item.text.replace("\n", ""), 'html.parser')
-    
+
 
     # find course title anchors
     course_title_anchors = soup.find_all(True, {"class": "PAGROUPBOXLABELLEVEL1"})
@@ -117,8 +144,10 @@ def parseXML(xmlfilename):
             class_obj["meetings"] = meetings
             parsed_selectables.append(class_obj)
 
-        courses.append( {"code": course_code, "title": course_title, "classes": parsed_selectables } )
-    
+        course = {"code": course_code, "title": course_title, "classes": parsed_selectables }
+        convert_course_date(course)
+        courses.append( course )
+
     return courses
 
 def save_to_json(data, filename):
