@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET # used to parse the xml and retrieve the html
 from bs4 import BeautifulSoup # used to parse the html
 import unicodedata
 import time
+import datetime
 """ here is a rought outline of the json datastructure we aim to create:
 
 courses = [
@@ -53,15 +54,37 @@ def convert_course_date(course):
 
                 start, end = old_dates.split(" - ") # split the start and end range
 
-                meeting["datesUNIX"] = {"start": do_the_thing(start), "end": do_the_thing(end)}
+                date_range_unix = {"start": do_the_thing(start), "end": do_the_thing(end)}
+                # meeting["dateRangeUNIX"] = {"start": do_the_thing(start), "end": do_the_thing(end)}
+            else: # since we've pivoted to pre-calculating all the times when a meeting will happen, and this needs both time and date, we should simply skip if we are missing any component since there's nothing we can do
+                continue
             
+            # parse the name of the day ##########
+            # meeting["dayName"] = old_times[:3]
+            day_name = old_times[:2]
+                
             # parse times ########################
             if (old_times != "TBA"):
                 # TODO: wrap this part of parsing in a try except block with the apropriate error name for then the time is TBA
                 start, end = old_times[4:].split(" - ")
                 
-                meeting["timesUNIX"] = {"start": start, "end": end}
+                # meeting["timeRange"] = {"start": start, "end": end}
+                def time_to_seconds(time):
+                    hours, minutes = time.split(":")
+                    return int(hours)*60*60 + int(minutes)*60
+                    
+                time_range = {"start": time_to_seconds(start), "end": time_to_seconds(end)}
+            else:
+                continue
 
+            slot_times = []
+            for day_timestamp in range(date_range_unix["start"], date_range_unix["end"]+1, 86400): # 86400 is the time in seconds for 24 hours
+                day = datetime.date.fromtimestamp(day_timestamp)
+                print(f"{day.strftime('%A')[:2].lower()=}, {day_name.lower()=}")
+                if day.strftime('%A')[:2].lower() == day_name.lower():
+                    slot_times.append( { "start": day_timestamp+time_range["start"], "duration": time_range["end"]-time_range["start"] } )
+            
+            meeting["unix_representation"] = slot_times
 
 
 def parseXML(xmlfilename):
