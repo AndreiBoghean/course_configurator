@@ -1,4 +1,4 @@
-let minCollisions = require('./timetabling_solver').minCollisions
+//let minCollisions = require('./timetabling_solver').minCollisions
 
 /* general notes on this file:
 
@@ -31,7 +31,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 }).then(function (courses) {
 	
 	function courseCodeToObject(courseCode)
-		return courses.find(course => course.code === courseCode)
+	{ return courses.find(course => course.code === courseCode) }
 	
 	function idToObject(id)
 	{
@@ -84,19 +84,182 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	console.log("chosenCourses:")
 	console.log(chosenCourses)
 
-	// const slots = ['8:00', '10:00', '12:00']
-
-
+	
 	/*
-	let slots = []
-	const times = ['8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00']
-	const days = ["mo", "tu", "we", "th", "fr"]
-	for (let day of days)
-		for (let time of times)
-			slots.push(day + "_" + time)
-	// note: we should change from doing slot times with respect to each week, to agregating all start times from all possible slots.
+	the "combinations" is a variable containing a list of all the combinations of things.
+	each "combination" is a list, structured as follows:
+	each item in this list coresponds to a course
+	this "item" is itself a list, containing a list of numbers
+	with each number representing the chosen thing for a given group
+	
+	eg. for CS1P, CS1S, and CS1F:
+	[[0, 0, 0], [0, 0, 0, 0], [0, 0, 0]]
+	this means
+	[[enrollment0, lect0, lab0], [enrollment0, lect0, lab0, tutorial0], [enrollment0, lect0, lab0]]
+	
+	(note that this example is not representative of the actual structure of these courses)
 	*/
+	function generateCombinations(chosenCourses)
+	{
+		// helper functions
+		function zeroCombination(combination)
+		{
+			let zeroComb = []
+			for (let clss of combination)
+			{
+				let subComb = []
+				
+				for (let group of clss)
+				{
+					let obj = new Object();
+					obj.itemIndex = 0;
+					obj.length = group.length
+					
+					subComb.push(obj)
+				}
+				
+				zeroComb.push(subComb)
+			}
+			return zeroComb
+		}
+		
+		function compareCombination(comb1, comb2)
+		{
+			if (comb1.length !== comb2.length) return false
+			
+			for (let clss_i = 0 ; clss_i < comb1.length ; clss_i++)
+			{
+				if (comb1[clss_i].length !== comb2[clss_i].length) return false
+				
+				for (let group_i = 0 ; group_i < comb1[clss_i].length ; group_i++)
+				{
+					let obj1 = comb1[clss_i][group_i]
+					let obj2 = comb2[clss_i][group_i]
+					
+					if (obj1.itemIndex !== obj2.itemIndex || obj1.length !== obj2.length) return false
+				}
+			}
+			return true
+		}
+		
+		function deepCopyCombination(combination)
+		{
+			let newComb = []
+			for (let clss of combination)
+			{
+				let subComb = []
+				
+				for (let group of clss)
+				{
+					let obj = new Object();
+					obj.itemIndex = group.itemIndex;
+					obj.length = group.length
+					
+					subComb.push(obj)
+				}
+				
+				newComb.push(subComb)
+			}
+			return newComb
+		}
+		
+		function createCombination(chosenCourses)
+		{
+			// building up the base combination
+			let base_combination = []
+			for (let course of chosenCourses)
+			{
+				let group_choices = []
+				
+				for (let group_key in course.classes)
+				{
+					let obj = new Object();
+					obj.itemIndex = 0;
+					obj.length = course.classes[group_key].length
+					group_choices.push(obj)
+				}
+				base_combination.push(group_choices)
+			}
+			return base_combination
+		}
+		
+		function incrementAndPropagate(base_combination, courseI, groupI)
+		{
+			// increment the item
+			let course = base_combination[courseI] // obtain the course in question
+			course[groupI].itemIndex += 1 // advance the selection for the apropriate group
+			
+			if (course[groupI].itemIndex > course[groupI].length-1) // if overflow detected...
+			{
+				course[groupI].itemIndex = 0 // reset to 0 (the OVERFLOW part)
+				
+				if (groupI > 0) // if not at last group yet...
+					return incrementAndPropagate(base_combination, courseI, groupI-1) // PROPOGATE to next group
+				else
+				{
+					if (courseI <= 0) return zeroCombination(base_combination)// return a base_combination that has all zeroes. this will signify to the caller that the combination has hit the final overflow and we are done.
+					
+					let nextCourse = base_combination[courseI-1]
+					//let firstGroup = nextCourse[nextCourse.length-1]
+					return incrementAndPropagate(base_combination, courseI-1, nextCourse.length-1) // PROPOGATE to first group in next course
+				}
+			}
+			
+			return base_combination
+		}
+		
+		
+		let base_combination = createCombination(chosenCourses)
+		let original_base_combination = zeroCombination(base_combination)
+		
+		/*
+		now, we repeatedly increment the values reprenting the chosen things, until the value overruns and loops back to 0 once it reaches the number of selectables in the given group.
+		*/
+		
+		let combinations = []
+		while (true)
+		{
+			let last_classI = base_combination.length-1
+			let last_groupI = base_combination[last_classI].length-1
+			base_combination = incrementAndPropagate(base_combination, last_classI, last_groupI)
+			
+			combinations.push(deepCopyCombination(base_combination))
+			
+			// if everything is 0 again, that means the combination has fully overflowed and we have looped back and are ready to break & continue w the rest of the program (note that this is also why we seem to skip the step of adding the first combination. (it gets added at the end))
+			if (compareCombination(base_combination, original_base_combination))
+				break
+			/* potentially outdated code for trying overflow
+			// loop over courses
+			for (let group_i=base_combination.length-1 ; i>= 0 ; i--)
+			{
+				let group = base_combination[group_i]
+				
+				// loop over groups
+				for (let item_i = group.length-1 ; item_i >= 0 ; i--)
+				{
+					// check for overrun
+					if (group[item_i].itemIndex > group[item_i].length-1)
+					{
+						group[item_i].itemIndex = 0
+						
+						let prev_group = base_combination[group_i-1]
+						prev_group[prev_group.length-1] += 1
+					}
+				}
+			}
+			*/
+		}
+		
+		return combinations
+	}
+	
+	let combinations = generateCombinations(chosenCourses)
+	
+	console.log("combinations:")
+	console.log(combinations)
 
+	// this code might be usefull when looking for collisions?
+	/*
 	let slots = new Set();
 	for (let course of chosenCourses)
 		for (let group_key in course.classes)
@@ -109,146 +272,5 @@ fetch("/static/course_data/courses.json").then(function (response) {
 
 	console.log("slots:")
 	console.log(slots)
-
-	// const bookables = ['Tennis', 'Climbing', 'Gymnastic', 'Trapeze', 'Handstands']
-	let bookables = []
-	let groupID = 0;
-	for (let course of chosenCourses)
-		for (let group_key in course.classes)
-			bookables.push(JSON.stringify(idToObject(group_key)))
-
-	console.log("bookables:")
-	console.log(bookables)
-	return null
-
-	/* notes on how to handle constraints:
-	we need to enforce the grouping between different slots, ie. as long as the user has picked ANY slot in "group2" (arbitrarily the group containing lab slots), it will be valid.
-	we also need to enforce the times of the slots (ie. LB01 must be enforced as being on monday 8:00, LB02 must be enforced on tues 13:00, etc.)
-
-	complex contraint rules work by creating a lambda function which has parameters for the timetable, and then parses the timetable to see if anything in it breaks our arbitrary rules.
-	to enforce grouping, we can loop through each item in a group, and check that any of the group items are inside the timetable
-	to enforce timeslots, we can loop over each item in the timetable, look it up in the courses dataset, and check that the times match up.
-
-	note that we also pass in the list of all selectables as a simple constraint, because idealy nothing overlaps
 	*/
-
-	/*
-	const constraints = [
-		['Tennis', 'Climbing'],
-		['Handstands', 'Climbing'],
-		['Trapeze', 'Tennis'],
-		['Tennis', 'Handstands', 'Trapeze'],
-		(timetable) => timetable["8:00"].indexOf("Climbing") === -1 ? ["Climbing"] : []
-	]
-	*/
-	let constraints = [
-		bookables,
-		(timetable) => { // constraint for enforcing groups
-			/*
-			for (let chosenCourse of chosenCourses)
-				for (let group of chosenCourse.classes)
-				{
-					let found = false
-					for (let slot_option of group)
-						if (slot_option in timetable.chosen)
-						{
-							found = true
-							break
-						}
-					if (!found) { return false }
-				}
-			return true;
-			*/
-		
-			// for a group to be valid, ONE of it's member classes must have ALL of it's meetings selected.
-			for (let group_id of bookables)
-			{
-				let group_valid = false
-				for (let clss of idToObject(group_id))
-				{
-					let class_valid = true
-					for (let meeting_time of clss.meetings.unix_representation)
-					{
-						if (timetable[meeting_time.start] !== group)
-						{
-							class_valid = false
-							break
-						}
-					}
-					if (class_valid)
-					{
-						group_valid = true
-						break
-					}
-				}
-				if (!group_valid)
-					return [group_id]
-				
-			}
-		},
-		(timetable) => { // constraint for enforcing the times of the different slot options. (note that atm this assumes each thing is 1 hour long)
-			for (let chosen_option of timetable.chosen)
-			{
-				let found = false
-				for (let chosenCourse of chosenCourses)
-					for (let group of chosenCourse.classes)
-					{
-						for (let slot_option of group)
-							if (slot_option.class === chosen_option)
-							{
-								if (chosen_option.unix_representation === slot_option.unix_representation)
-								{
-									found = true
-									break
-								}
-							}
-					}
-				if (!found) { return false }
-			}
-			return true;
-		}
-	]
-
-	/* note: idk what my thought proccess was here. TODO: delete this
-	function funcGen(time, name)
-		{ return (timetable) => timetable[time].indexOf(name) === -1 ? [name] : [] }
-
-	for (let chosenClassGroup of chosenClasses)
-		for (let chosenClass of chosenClassGroup)
-		{ constrains.push( funcGen(chosenClass["TODO: make this work"]) ) } // TODO: make the constraints consider class length (atm it will probably break down when it meets 3h labs)
-	*/
-
-	data = {                // Object which represents the specification of the problem
-		slots:slots,        // List of time slots
-		bookables:bookables,// List of bookables that can be assigned to a specific time slot
-		constraints:constraints
-	/*
-		constraints: [      // List of constraints
-			constraint      // List of bookables which shouldn't overlap
-		]
-	*/
-		//softFitness? = (timetable) // Optional, prioritizes between two equally fit solutions (smaller number -> more preferred)
-	}
-
-	config = {              // Object which contains extra configuration
-		iterations: 1000,   // Maximum number of generations before stopping the algorithm
-		size: 250,          // Size of the population
-		crossover: 0.3,     // Probability of crossover happening
-		mutation: 0.8,      // Probability of a mutation happening
-		skip: 20,           // Numnber of generations to skip before calling partialCallback
-		//debug?: false,    // provide additional data to callbacks, for easier debugging
-		//...more: check out genetic-js documentation
-	}
-
-	//callback = (timetable, meta) //Function called at the end of the computation
-	callback = function (timetable, meta)
-	{
-		console.log("timetable:");
-		console.log(timetable);
-		//console.log("meta:");
-		//console.log(meta);
-	}
-
-	console.log(minCollisions(data, config, callback, null)); ////////////////////////// TODO: uncomment this
-
 });
