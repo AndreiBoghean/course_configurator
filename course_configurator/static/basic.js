@@ -96,7 +96,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	(note that this example is not representative of the actual structure of these courses)
 	*/
 
-	// helper functions
+	// helper functions initially created for helping generate combinations
 	function zeroCombination(combination)
 	{
 		let zeroComb = []
@@ -229,6 +229,35 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	let combinations = generateCombinations(chosenCourses)
 
 	console.log("combinations:")
+	console.log(combinations)
+	
+	// helper functions initially created for helping subtitute class choices with their respective class data
+	// this function takes a combination and replaces each group with the data of the class which is specified by the group.
+	function substituteCombinationClasses(chosenCourses, combinations)
+	{
+		for (let combinationI = 0 ; combinationI < combinations.length ; combinationI++ )
+		{
+			for (let courseI = 0 ; courseI < chosenCourses.length ; courseI++)
+			{
+				let course = chosenCourses[courseI]
+				
+				let groupI = 0
+				for ( let group_key in course.classes )
+				{
+					let group = course.classes[group_key]
+					combinations[combinationI][courseI][groupI] = group[ combinations[combinationI][courseI][groupI].itemIndex ]
+					
+					groupI++
+				}
+			}
+		}
+		
+		return combinations
+	}
+	
+	combinations = substituteCombinationClasses(chosenCourses, combinations)
+	
+	console.log("substituted combinations:")
 	console.log(combinations)
 
 	// this code might be usefull when looking for collisions?
