@@ -226,7 +226,42 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		return combinations
 	}
 
-	let combinations = generateCombinations(chosenCourses)
+	let combinations = generateCombinations(chosenCourses) /*
+	
+	// initialisation to make it easier to manually select stuff, for testing. (intended to be used in tandem with selecting course indexes 3 and 0)
+	let combinations = [ [
+		[
+			{
+				"itemIndex": 0,
+				"length": 1
+			},
+			{
+				"itemIndex": 0,
+				"length": 17
+			},
+			{
+				"itemIndex": 0,
+				"length": 1
+			}
+		],
+		[
+			{
+				"itemIndex": 0,
+				"length": 1
+			},
+			{
+				"itemIndex": 1,
+				"length": 11
+			},
+			{
+				"itemIndex": 0,
+				"length": 1
+			}
+		]
+	] ]
+	//*/
+
+
 
 	console.log("combinations:")
 	console.log(combinations)
@@ -240,15 +275,20 @@ fetch("/static/course_data/courses.json").then(function (response) {
 			for (let courseI = 0 ; courseI < chosenCourses.length ; courseI++)
 			{
 				let course = chosenCourses[courseI]
+				let newClasses = []
 				
 				let groupI = 0
 				for ( let group_key in course.classes )
 				{
 					let group = course.classes[group_key]
-					combinations[combinationI][courseI][groupI] = group[ combinations[combinationI][courseI][groupI].itemIndex ]
+					newClasses.push(group[ combinations[combinationI][courseI][groupI].itemIndex ])
 					
 					groupI++
 				}
+				
+				course = JSON.parse(JSON.stringify(course))
+				course.classes = newClasses
+				combinations[combinationI][courseI] = course
 			}
 		}
 		
@@ -259,20 +299,32 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	
 	console.log("substituted combinations:")
 	console.log(combinations)
-
-	// this code might be usefull when looking for collisions?
-	/*
-	let slots = new Set();
-	for (let course of chosenCourses)
-		for (let group_key in course.classes)
-			for (let clss of course.classes[group_key])
+	
+	function countCollisions(combination)
+	{
+		let times = {}
+		let collisions = 0
+		
+		for (let course of combination)
+			for (let clss of course.classes)
 				for (let meeting of clss.meetings)
-					if (meeting.dates !== "TBA") // this line is needed if attempting to aggregate all the courses rather than the selected ones. TODO: make a github issue documenting the following; if our program goes anywhere near the 0 credit courses, it dies (our code for grouping class selectables does not work properly on those for some reason)
+					if (meeting.hasOwnProperty("unix_representation"))
 						for (let unix_rep of meeting.unix_representation)
-							slots.add(unix_rep.start);
-	slots = Array.from(slots)
+							for (let time = unix_rep.start ; time < unix_rep.start+unix_rep.duration ; time += 60*60)
+							{
+								if (time in times) collisions++
+								
+								times[time] = time in times ? times[time]+1 : 1;
+							}
+		
+		return collisions
+	}
+	
+	for (let i = 0 ; i < combinations.length ; i++)
+		combinations[i] = { collisionCount: countCollisions(combinations[i]), combination: combinations[i] }
+	combinations.sort( function(a, b) {return a.collisionCount-b.collisionCount} ) // sort ascending
+	//combinations.sort( function(a, b) {return b.collisionCount-a.collisionCount} ) // sort descending
 
-	console.log("slots:")
-	console.log(slots)
-	*/
+	console.log("collision-counted combinations:")
+	console.log(combinations)
 });
