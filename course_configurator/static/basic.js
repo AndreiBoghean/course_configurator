@@ -59,9 +59,18 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	// collect chosen classes from user
 	while (true)
 	{
-		course = window.prompt("enter course index (enter -1 to finish adding stuff)","-1"); // at this point we expect the user to be viewing the courses via dev tools
+		course = window.prompt("enter course index (format \"i:0\")\nor course code (format: \"c:COMPSCI1001\")\n(enter -1 to finish adding stuff)\n(suggestion: \"c:COMPSCI2001\" \"c:COMPSCI2003\" \"c:COMPSCI2024\")","-1"); // at this point we expect the user to be viewing the courses via dev tools
 		if (course === "-1") { break; }
-		course = courses[parseInt(course)]
+
+		if (course.split(":")[0] === "i")
+			course = courses[parseInt(course.slice(2))]
+		else if (course.split(":")[0] === "c")
+			course = courseCodeToObject(course.split(":")[1])
+		else
+		{
+			alert("invalid input; please try again")
+			continue
+		}
 
 		let classGroups = []
 		// parse course to group up the interchangable things (group up different labs, different lectures, etc.)
@@ -227,8 +236,8 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	}
 
 	let combinations = generateCombinations(chosenCourses) /*
-	
-	// initialisation to make it easier to manually select stuff, for testing. (intended to be used in tandem with selecting course indexes 3 and 0)
+
+	// initialisation to make it easier to manually select stuff, for testing. (intended to be used in tandem with selecting course indexes 3 and 0 (3 and 0 are classes with overlapping sections which allows us to test collisions))
 	let combinations = [ [
 		[
 			{
@@ -265,7 +274,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 
 	console.log("combinations:")
 	console.log(combinations)
-	
+
 	// helper functions initially created for helping subtitute class choices with their respective class data
 	// this function takes a combination and replaces each group with the data of the class which is specified by the group.
 	function substituteCombinationClasses(chosenCourses, combinations)
@@ -276,35 +285,36 @@ fetch("/static/course_data/courses.json").then(function (response) {
 			{
 				let course = chosenCourses[courseI]
 				let newClasses = []
-				
+
 				let groupI = 0
 				for ( let group_key in course.classes )
 				{
 					let group = course.classes[group_key]
 					newClasses.push(group[ combinations[combinationI][courseI][groupI].itemIndex ])
-					
+
 					groupI++
 				}
-				
+
 				course = JSON.parse(JSON.stringify(course))
 				course.classes = newClasses
 				combinations[combinationI][courseI] = course
 			}
 		}
-		
+
 		return combinations
 	}
-	
+
 	combinations = substituteCombinationClasses(chosenCourses, combinations)
-	
+
 	console.log("substituted combinations:")
 	console.log(combinations)
 	
+	// function to count the collisions in a course configuration, given by a combination object. (works by saving unix representations of each meeting to a dict, and counting occurances)
 	function countCollisions(combination)
 	{
 		let times = {}
 		let collisions = 0
-		
+
 		for (let course of combination)
 			for (let clss of course.classes)
 				for (let meeting of clss.meetings)
@@ -313,18 +323,61 @@ fetch("/static/course_data/courses.json").then(function (response) {
 							for (let time = unix_rep.start ; time < unix_rep.start+unix_rep.duration ; time += 60*60)
 							{
 								if (time in times) collisions++
-								
+
 								times[time] = time in times ? times[time]+1 : 1;
 							}
-		
+
 		return collisions
 	}
-	
+
+	// evaluate and store the collision counts for each combination.
 	for (let i = 0 ; i < combinations.length ; i++)
 		combinations[i] = { collisionCount: countCollisions(combinations[i]), combination: combinations[i] }
-	combinations.sort( function(a, b) {return a.collisionCount-b.collisionCount} ) // sort ascending
-	//combinations.sort( function(a, b) {return b.collisionCount-a.collisionCount} ) // sort descending
+	
+	// sort ascending
+	combinations.sort( function(a, b) {return a.collisionCount-b.collisionCount} )
+	// sort descending
+	//combinations.sort( function(a, b) {return b.collisionCount-a.collisionCount} )
 
 	console.log("collision-counted combinations:")
 	console.log(combinations)
+
+	// function which, given a combination object, creates a node and calender and returns a list containing 1. the html node used for the calendar 2. the calander object.
+	function combinationToCalendar(combination)
+	{
+		let calendarEl = document.createElement("div");
+		let cal_events = []
+
+		// building up calendar events to submit to the calander object
+		for ( let course of combination )
+		{
+			let courseColour = "#" + Math.floor(Math.random()*16777215).toString(16);
+
+			for ( let clss of course.classes )
+				for ( let meeting of clss.meetings )
+					if (meeting.hasOwnProperty("unix_representation"))
+						for (let unix_rep of meeting.unix_representation )
+						{
+							cal_events.push( {
+								title: clss.section, // a property!
+								start: (unix_rep.start)*1000, // *1000 to convert unix timestamp in seconds to miliseconds
+								end: (unix_rep.start+unix_rep.duration)*1000,
+								backgroundColor: courseColour, // a property!
+							} )
+						}
+		}
+		
+		calendar = new FullCalendar.Calendar(calendarEl, {initialView: 'timeGridWeek', events: cal_events});
+		return {elem: calendarEl, cal: calendar}
+	}
+
+	// create and display calenders for all combinations. (currently limiting to 50 combinations as a workaround for performance issues)
+	let rendered = 0
+	for (let combination of combinations)
+	{
+		if (rendered++ > 50) break;
+		let result = combinationToCalendar(combination.combination)
+		document.getElementById("calArea").appendChild(result.elem);
+		result.cal.render();
+	}
 });
