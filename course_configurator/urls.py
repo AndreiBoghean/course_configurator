@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from course_configurator.views import index
+from course_configurator.views import index, courseSelect, courseDisplay
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', index)
+    path('', index),
+    path('iframes/courseSelect', courseSelect),
+    path('iframes/courseDisplay', courseDisplay)
 ]
