@@ -9,8 +9,13 @@
 
 	<body>
 		<h1> course display </h1>
+		<div>
+			<button onclick="document.querySelectorAll('button[title=\'Previous week\']').forEach(x => x.click())">prev week</button>
+			<button onclick="document.querySelectorAll('button[title=\'Next week\']').forEach(x => x.click())">next week</button>
+		</div>
 		<div id='calArea'></div>
 		<script src="{% static 'courseDisplay.js' %}"></script>
+		<script src="{% static 'globalCalControlls.js' %}"></script>
 	</body>
 
 </html>
