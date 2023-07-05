@@ -341,7 +341,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		calendar = new FullCalendar.Calendar(calendarEl, {initialView: 'timeGridWeek', events: cal_events});
 		return {elem: calendarEl, cal: calendar}
 	}
-
+	
 	// create and display calenders for all combinations. (currently limiting to 50 combinations as a workaround for performance issues)
 	let rendered = 0
 	for (let combination of combinations)
@@ -350,5 +350,41 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		let result = combinationToCalendar(combination.combination)
 		document.getElementById("calArea").appendChild(result.elem);
 		result.cal.render();
+	}
+	
+	// set up the context menu
+	let courseMenuList = document.getElementById("contextMenu").firstElementChild
+	for (let course of chosenCourses)
+	{
+		let courseEntry = document.createElement("li")
+		courseMenuList.appendChild(courseEntry)
+		courseEntry.innerHTML = course.title
+		
+		let courseSubMenu = document.createElement("div")
+		courseEntry.appendChild(courseSubMenu)
+		let courseSubMenuList = document.createElement("ul")
+		courseSubMenu.appendChild(courseSubMenuList)
+		
+		for (let group in course.classes)
+		{
+			let groupEntry = document.createElement("li")
+			courseSubMenuList.appendChild(groupEntry)
+			
+			groupEntry.innerHTML = group.split("|")[1]
+			
+			let selectableMenu = document.createElement("div")
+			groupEntry.appendChild(selectableMenu)
+			let selectableMenuList = document.createElement("ul")
+			selectableMenu.appendChild(selectableMenuList)
+			
+			
+			for (let selectable of course.classes[group])
+			{
+				let selectableEntry = document.createElement("li")
+				selectableMenuList.appendChild(selectableEntry)
+				
+				selectableEntry.innerHTML = selectable.section
+			}
+		}
 	}
 });
