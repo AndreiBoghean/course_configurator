@@ -1,5 +1,3 @@
-//let minCollisions = require('./timetabling_solver').minCollisions
-
 /* general notes on this file:
 
 a reminder of the json datastructure of the thing:
