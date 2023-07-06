@@ -161,7 +161,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		return {elem: calendarEl, cal: calendar}
 	}
 	
-	// create and display calenders for all combinations. (currently limiting to 50 combinations as a workaround for performance issues)
+	// create and display calenders for all combinations. (currently limiting to 25 combinations as a workaround for performance issues)
 	
 	let colourKey = {}
 	for (let course of combinations[0].combination)
@@ -170,7 +170,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	let rendered = 0
 	for (let combination of combinations)
 	{
-		if (rendered++ > 50) break;
+		if (rendered++ > 25) break;
 		let result = combinationToCalendar(combination.combination, colourKey)
 		document.getElementById("calArea").appendChild(result.elem);
 		result.cal.render();
