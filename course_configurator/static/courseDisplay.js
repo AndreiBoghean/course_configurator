@@ -22,6 +22,8 @@ courses = [
 TODO: find a way to do this across multiple days (beeg oversight in planning when I decided to use that specific timetabler lol)
 */
 
+import { findAllArgsNamed } from "/static/urlArgParser.js"
+
 // retrieve course data
 fetch("/static/course_data/courses.json").then(function (response) {
 	return response.json();
@@ -31,9 +33,8 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	{
 		return courses.find(course => course.code === courseCode);
 	}
-
-	let parsedURL = new URL(window.location.href)
-	let chosenCourseCodes = parsedURL.searchParams.getAll("chosenCourseCode[]")
+	
+	let chosenCourseCodes = findAllArgsNamed("chosenCourseCode[]")
 	
 	let chosenCourses = []
 	for (let course_code of chosenCourseCodes)
@@ -312,7 +313,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	console.log(combinations)
 
 	// function which, given a combination object, creates a node and calender and returns a list containing 1. the html node used for the calendar 2. the calander object.
-	function combinationToCalendar(combination)
+	function combinationToCalendar(combination, colourKey)
 	{
 		let calendarEl = document.createElement("div");
 		let cal_events = []
@@ -320,8 +321,8 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		// building up calendar events to submit to the calander object
 		for ( let course of combination )
 		{
-			let courseColour = "#" + Math.floor(Math.random()*16777215).toString(16);
-
+			course.colour = colourKey[course.code]
+			
 			for ( let clss of course.classes )
 				for ( let meeting of clss.meetings )
 					if (meeting.hasOwnProperty("unix_representation"))
@@ -331,21 +332,26 @@ fetch("/static/course_data/courses.json").then(function (response) {
 								title: clss.section, // a property!
 								start: (unix_rep.start)*1000, // *1000 to convert unix timestamp in seconds to miliseconds
 								end: (unix_rep.start+unix_rep.duration)*1000,
-								backgroundColor: courseColour, // a property!
+								backgroundColor: course.colour, // a property!
 							} )
 						}
 		}
 		
-		calendar = new FullCalendar.Calendar(calendarEl, {initialView: 'timeGridWeek', events: cal_events});
+		let calendar = new FullCalendar.Calendar(calendarEl, {initialView: 'timeGridWeek', events: cal_events});
 		return {elem: calendarEl, cal: calendar}
 	}
 	
 	// create and display calenders for all combinations. (currently limiting to 50 combinations as a workaround for performance issues)
+	
+	let colourKey = {}
+	for (let course of combinations[0].combination)
+		colourKey[course.code] = "#" + Math.floor(Math.random()*16777215).toString(16);
+	
 	let rendered = 0
 	for (let combination of combinations)
 	{
 		if (rendered++ > 50) break;
-		let result = combinationToCalendar(combination.combination)
+		let result = combinationToCalendar(combination.combination, colourKey)
 		document.getElementById("calArea").appendChild(result.elem);
 		result.cal.render();
 	}
