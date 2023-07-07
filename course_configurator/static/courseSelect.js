@@ -24,6 +24,7 @@ courses = [
 TODO: find a way to do this across multiple days (beeg oversight in planning when I decided to use that specific timetabler lol)
 */
 
+import { appendArg } from "/static/urlArgParser.js"
 
 // retrieve course data and use it to populate table
 fetch("/static/course_data/courses.json").then(function (response) {
@@ -67,11 +68,13 @@ function submitCourses()
 			chosenCourseCodes.push(input.courseCode)
 	
 	// append course codes to redirect URL
-	let nextURL = "/iframes/courseDisplay?"
+	let nextURL = "/iframes/courseDisplay"
 	for (let courseCode of chosenCourseCodes)
-		nextURL += "&chosenCourseCode[]=" + courseCode
+		nextURL = appendArg(nextURL, "chosenCourseCode[]="+courseCode)
 	
 	//alert("dismiss this to move on to next step")
 	console.log("...redirecting to " + nextURL)
 	window.location.href = nextURL
 }
+
+document.getElementById("courseConfirmBtn").onclick = submitCourses

@@ -177,7 +177,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	}
 	
 	// set up the context menu
-	let courseMenuList = document.getElementById("contextMenu").firstElementChild
+	let courseMenuList = document.getElementById("courseControls").firstElementChild
 	for (let course of chosenCourses)
 	{
 		let courseEntry = document.createElement("li")
@@ -207,7 +207,15 @@ fetch("/static/course_data/courses.json").then(function (response) {
 				let selectableEntry = document.createElement("li")
 				selectableMenuList.appendChild(selectableEntry)
 				
-				selectableEntry.innerHTML = selectable.section
+				let selectableEntryBtn = document.createElement("button")
+				selectableEntry.appendChild(selectableEntryBtn)
+				
+				selectableEntryBtn.innerHTML = selectable.section
+				selectableEntryBtn.selectableObj = selectable
+				selectableEntryBtn.onclick = function () { console.log(this.selectableObj.class) }
+				
+				
+				//console.log(selectableEntryBtn)
 			}
 		}
 	}

@@ -4,12 +4,12 @@
 <html>
 	<body>
 		<h1> course select </h1>
-		<button onclick="submitCourses()">confirm course choices</button>
+		<button id="courseConfirmBtn">confirm course choices</button>
 		<div style="overflow-y: scroll; height: 2000px">
 			<table id="courseTable">
 			</table>
 		</div>
 	</body>
 
-	<script src="{% static 'courseSelect.js' %}"></script>
+	<script src="{% static 'courseSelect.js' %}" type="module"></script>
 </html>

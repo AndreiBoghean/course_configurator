@@ -12,42 +12,28 @@
 		<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 	</head>
 
+	<style>
+		#courseControls ul li { float: left; width: 275px; }
+	</style>
+
 	<body>
-		<div id="contextMenu" class="position-absolute" style="display: none;">
-			<ul>
-			</ul>
-		</div>
 
 		<h1> course display </h1>
 		<div>
 			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Previous week\']').forEach(x => x.click())">prev week</button>
 			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Next week\']').forEach(x => x.click())">next week</button>
 		</div>
-		<div id='calArea'></div>
+
+		<div id="courseControls">
+			<ul>
+			</ul>
+		</div>
 		
+		<br style="clear: both; display: block"/>
+		
+		<div id='calArea'></div>
 	</body>
 
 	<script src="{% static 'courseDisplay.js' %}" type="module"></script>
 
-	<script>
-		document.onclick = hideMenu;
-		document.oncontextmenu = rightClick;
-
-		function hideMenu() {
-			document.getElementById("contextMenu").style.display = "none"
-		}
-
-		function rightClick(e) {
-			e.preventDefault();
-
-			if (document.getElementById("contextMenu") .style.display == "block"){ hideMenu(); }
-			else
-			{
-				var menu = document.getElementById("contextMenu")
-				menu.style.display = 'block';
-				menu.style.left = e.pageX + "px";
-				menu.style.top = e.pageY + "px";
-			}
-		}
-	</script>
 </html>
