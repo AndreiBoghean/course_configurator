@@ -22,7 +22,7 @@ courses = [
 TODO: find a way to do this across multiple days (beeg oversight in planning when I decided to use that specific timetabler lol)
 */
 
-import { findAllArgsNamed } from "/static/urlArgParser.js"
+import { findAllArgsNamed, appendArg } from "/static/urlArgParser.js"
 import { generateCombinations } from "/static/combination.js"
 
 // retrieve course data
@@ -34,29 +34,68 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	{
 		return courses.find(course => course.code === courseCode);
 	}
-	
+
 	let chosenCourseCodes = findAllArgsNamed("chosenCourseCode[]")
-	
+
+	let forcedEnabledClasses = findAllArgsNamed("forcedEnabledClasses[]")
+	let forcedDisabledClasses = findAllArgsNamed("forcedDisabledClasses[]")
+
 	let chosenCourses = []
 	for (let course_code of chosenCourseCodes)
 	{
 		let course = courseCodeToObject(course_code)
-		
+
 		let classGroups = []
+		let continueTilNextKey = false
+		let key = "";
 		// parse course to group up the interchangable things (group up different labs, different lectures, etc.)
 		// this code operates on the assumption that all meetings which can be grouped together will begin with the same word
 		for (let item of course.classes)
 		{
 			// keys are to be of the form "{course code}|{one of Lecture or Lab or Tutorial or etc.}"
-			let key = course.code + "|" + item.section.split(" ")[0]
+			let newKey = course.code + "|" + item.section.split(" ")[0]
+			if (newKey === key && continueTilNextKey)
+				continue;
+			key = newKey
+			continueTilNextKey = false
+			
+			if (forcedDisabledClasses.includes(item.class))
+				continue
+			if (forcedEnabledClasses.includes(item.class))
+			{
+				classGroups[key] = [item]
+				continueTilNextKey = true
+				continue
+			}
+			
 			if (key in classGroups) classGroups[key].push(item)
 			else classGroups[key] = [item]
 		}
 		course.classes = classGroups // overwrite the original data with the grouped up structure
-		
+
 		chosenCourses.push(course)
 	}
-	
+
+	/*
+	for (let course of chosenCourses)
+	{
+		for (let group_key in chosenCourses.classes)
+		{
+			for (let clss of chosenCourses.classes[group_key])
+			{
+				if (forcedEnabledClasses.contains(clss.class))
+				{
+					chosenCourses.classes[group_key] = [clss]
+					break
+				}
+
+				if (forcedDisabledClasses.contains(clss.class))
+					chosenCourses.classes[group_key] = chosenCourses.classes[group_key].filter(function (x) { return x !== clss} )
+			}
+		}
+	}
+	*/
+
 	console.log("chosenCourses:")
 	console.log(chosenCourses)
 
@@ -98,7 +137,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 
 	console.log("substituted combinations:")
 	console.log(combinations)
-	
+
 	// function to count the collisions in a course configuration, given by a combination object. (works by saving unix representations of each meeting to a dict, and counting occurances)
 	function countCollisions(combination)
 	{
@@ -123,7 +162,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 	// evaluate and store the collision counts for each combination.
 	for (let i = 0 ; i < combinations.length ; i++)
 		combinations[i] = { collisionCount: countCollisions(combinations[i]), combination: combinations[i] }
-	
+
 	// sort ascending
 	combinations.sort( function(a, b) {return a.collisionCount-b.collisionCount} )
 	// sort descending
@@ -142,7 +181,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		for ( let course of combination )
 		{
 			course.colour = colourKey[course.code]
-			
+
 			for ( let clss of course.classes )
 				for ( let meeting of clss.meetings )
 					if (meeting.hasOwnProperty("unix_representation"))
@@ -156,17 +195,17 @@ fetch("/static/course_data/courses.json").then(function (response) {
 							} )
 						}
 		}
-		
+
 		let calendar = new FullCalendar.Calendar(calendarEl, {initialView: 'timeGridWeek', events: cal_events});
 		return {elem: calendarEl, cal: calendar}
 	}
-	
+
 	// create and display calenders for all combinations. (currently limiting to 25 combinations as a workaround for performance issues)
-	
+
 	let colourKey = {}
 	for (let course of combinations[0].combination)
 		colourKey[course.code] = "#" + Math.floor(Math.random()*16777215).toString(16);
-	
+
 	let rendered = 0
 	for (let combination of combinations)
 	{
@@ -175,7 +214,7 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		document.getElementById("calArea").appendChild(result.elem);
 		result.cal.render();
 	}
-	
+
 	// set up the context menu
 	let courseMenuList = document.getElementById("courseControls").firstElementChild
 	for (let course of chosenCourses)
@@ -183,39 +222,52 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		let courseEntry = document.createElement("li")
 		courseMenuList.appendChild(courseEntry)
 		courseEntry.innerHTML = course.title
-		
+
 		let courseSubMenu = document.createElement("div")
 		courseEntry.appendChild(courseSubMenu)
 		let courseSubMenuList = document.createElement("ul")
 		courseSubMenu.appendChild(courseSubMenuList)
-		
+
 		for (let group in course.classes)
 		{
 			let groupEntry = document.createElement("li")
 			courseSubMenuList.appendChild(groupEntry)
-			
+
 			groupEntry.innerHTML = group.split("|")[1]
-			
+
 			let selectableMenu = document.createElement("div")
 			groupEntry.appendChild(selectableMenu)
 			let selectableMenuList = document.createElement("ul")
 			selectableMenu.appendChild(selectableMenuList)
-			
-			
+
+
 			for (let selectable of course.classes[group])
 			{
 				let selectableEntry = document.createElement("li")
 				selectableMenuList.appendChild(selectableEntry)
-				
+
+				let parentDiv = document.createElement("div")
+				selectableEntry.appendChild(parentDiv)
+
 				let selectableEntryBtn = document.createElement("button")
-				selectableEntry.appendChild(selectableEntryBtn)
-				
+				if (forcedDisabledClasses.includes(selectable.class))
+					selectableEntryBtn.classList.add("btn", "btn-danger");
+				if (forcedEnabledClasses.includes(selectable.class))
+					selectableEntryBtn.classList.add("btn", "btn-success");
+				parentDiv.appendChild(selectableEntryBtn)
+
 				selectableEntryBtn.innerHTML = selectable.section
-				selectableEntryBtn.selectableObj = selectable
-				selectableEntryBtn.onclick = function () { console.log(this.selectableObj.class) }
-				
-				
-				//console.log(selectableEntryBtn)
+
+
+				parentDiv.selectableObj = selectable
+				parentDiv.onmousedown = function (e) {
+					e.preventDefault()
+					
+					if (e.button === 0)
+						window.location.href = appendArg(window.location.href, "forcedEnabledClasses[]=" + this.selectableObj.class)
+					else if (e.button === 2)
+						window.location.href = appendArg(window.location.href, "forcedDisabledClasses[]=" + this.selectableObj.class)
+				}
 			}
 		}
 	}
