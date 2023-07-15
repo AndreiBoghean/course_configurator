@@ -1,9 +1,10 @@
 ## execution instructions:
 
-1. (from course_configurator\course_configurator\static) (using node.js console) run `npx browserify basic.js -o _basic.js` to compile proof of concept js file
+### using docker:
+1. run `docker compose up --build`
+
+### alternatively:
+
+1. (from course_configurator\course_configurator\static\course_data) run `python parser.py` to parse the coruse data xml into json
 2. (from repo root) run `python manage.py runserver` to start the django server
-3. open devtools and check console to see result of trying to solve the simple booking scenario
-
-## TODO:
-
-[ ] change submodule folder name to be the same as repo name
+3. navigate to the web address displayed to you by django in the console
