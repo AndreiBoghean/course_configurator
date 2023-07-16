@@ -49,10 +49,10 @@ fetch("/static/course_data/courses.json").then(function (response) {
 		let continueTilNextKey = false
 		let key = "";
 		// parse course to group up the interchangable things (group up different labs, different lectures, etc.)
-		// this code operates on the assumption that all meetings which can be grouped together will begin with the same word
-		for (let item of course.classes)
+		// also, move labs to the start of the group, away from the end (in order to prevent our combination algorithm from changing lab slots in batches, which would thusly create many sequential combinations where the lab is the thing which changes) (our combination algorithm currently works in little endian, so it increments the end of the sequence.)
+		for (let item of course.classes) // this code operates on the assumption that all meetings which can be grouped together will begin with the same word
 		{
-			// keys are to be of the form "{course code}|{one of Lecture or Lab or Tutorial or etc.}"
+			// keys are to be of the form "{course code}|{one of Lecture or Laboratory or Tutorial or etc.}"
 			let newKey = course.code + "|" + item.section.split(" ")[0]
 			if (newKey === key && continueTilNextKey)
 				continue;
@@ -71,7 +71,16 @@ fetch("/static/course_data/courses.json").then(function (response) {
 			if (key in classGroups) classGroups[key].push(item)
 			else classGroups[key] = [item]
 		}
-		course.classes = classGroups // overwrite the original data with the grouped up structure
+		
+		// this is the part where we move the Laboratory slot to the start
+		let labKey = course.code + "|Laboratory"
+		let newClassGroups = []
+		newClassGroups[labKey] = classGroups[labKey]
+		for (let key in classGroups)
+			if (key !== labKey)
+				newClassGroups[key] = classGroups[key]
+		
+		course.classes = newClassGroups // overwrite the original data with the grouped up structure
 
 		chosenCourses.push(course)
 	}
