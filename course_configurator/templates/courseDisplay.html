@@ -16,20 +16,32 @@
 		#courseControls ul li { float: left; width: 275px; }
 	</style>
 
-	<body>
+	<body class="px-1">
 
 		<h1> course display </h1>
-		<div>
-			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Previous week\']').forEach(x => x.click())">prev week</button>
-			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Next week\']').forEach(x => x.click())">next week</button>
-			<button class="btn btn-primary" onclick="document.getElementById('courseControls').style.display = document.getElementById('courseControls').style.display==='none' ? 'block' : 'none'">toggle menu visibility</button>
-		</div>
-
-		<div id="courseControls">
+		
+		<p id="helpText" style="display: none">
+			this webpage displays a callendar for each possible combination of slot choices for the current settings. <br />
+			the menu can be used to force enable (left click) or force disable (right click) a given option from the combinations. <br />
+			(note that there is currently an issue where force disabled options get removed entirely.) <br />
+			each calendar has it's own calendar controls, but there are buttons provided which allow limited control for all callendars simulatneously. <br />
+			calendars are currently limited to only display 25 (due to performance limitations) <br />
+		</p>
+		
+		<div id="courseControls" style="display: none">
 			<ul>
 			</ul>
 		</div>
 		
+		<br style="clear: both; display: block"/>
+		
+		<div class="mt-3">
+			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Previous week\']').forEach(x => x.click())">prev week</button>
+			<button class="btn btn-primary" onclick="document.querySelectorAll('button[title=\'Next week\']').forEach(x => x.click())">next week</button>
+			<button class="btn btn-primary" onclick="document.getElementById('courseControls').style.display = document.getElementById('courseControls').style.display==='none' ? 'block' : 'none'">toggle menu visibility</button>
+			<button class="btn btn-primary" onclick="document.getElementById('helpText').style.display = document.getElementById('helpText').style.display==='none' ? 'block' : 'none'">toggle help text</button>
+		</div>
+
 		<br style="clear: both; display: block"/>
 		
 		<div id='calArea'></div>
