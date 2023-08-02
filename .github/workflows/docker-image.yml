@@ -16,5 +16,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag andreiboghean/course_configurator:$(date +%s)
-      run: docker image push andreiboghean/course_configurator:$(date +%s)
+      run: |
+        docker build . --file Dockerfile --tag andreiboghean/course_configurator:$(date +%s)
+        docker image push andreiboghean/course_configurator:$(date +%s)
