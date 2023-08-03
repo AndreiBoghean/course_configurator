@@ -39,3 +39,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          tags: "andreiboghean/course_configurator:latest"
