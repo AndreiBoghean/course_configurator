@@ -11,6 +11,7 @@ services:
   server:
     build:
       context: .
+    image: andreiboghean/course_configurator
     ports:
       - 8000:8000
 
