@@ -71,16 +71,21 @@ fetch("/static/course_data/courses.json").then(function (response) {
 			if (key in classGroups) classGroups[key].push(item)
 			else classGroups[key] = [item]
 		}
-		
+
 		// this is the part where we move the Laboratory slot to the start
 		let labKey = course.code + "|Laboratory"
-		let newClassGroups = []
-		newClassGroups[labKey] = classGroups[labKey]
-		for (let key in classGroups)
-			if (key !== labKey)
-				newClassGroups[key] = classGroups[key]
-		
-		course.classes = newClassGroups // overwrite the original data with the grouped up structure
+		if ( !(labKey in classGroups) ) // if labs not in this course, there is nothing for us to move forwards so we just use the existing classGroups
+		{ course.classes = classGroups }
+		else
+		{
+			let newClassGroups = []
+			newClassGroups[labKey] = classGroups[labKey]
+			for (let key in classGroups)
+				if (key !== labKey)
+					newClassGroups[key] = classGroups[key]
+			
+			course.classes = newClassGroups // overwrite the original data with the grouped up structure
+		}
 
 		chosenCourses.push(course)
 	}
