@@ -1,3 +1,0 @@
-[submodule "course_configurator/static/timetabling_solver"]
-	path = course_configurator/static/timetabling_solver
-	url = https://github.com/framp/timetabling-solver.git
