@@ -8,7 +8,7 @@ ARG PYTHON_VERSION=3.11.0
 # FROM python:${PYTHON_VERSION}-slim as base
 FROM archlinux as base
 
-RUN pacman -Syu python python-pip --noconfirm
+RUN pacman -Syu nginx python python-pip --noconfirm
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -45,11 +45,11 @@ RUN python parser.py
 WORKDIR /app
 
 # Switch to the non-privileged user to run the application.
-USER appuser
+# USER appuser
 
 # Expose the port that the application listens on.
 EXPOSE 8000
-
+EXPOSE 8080
 
 # Run the application.
-CMD gunicorn -c ./gunicorn/dev.py
+CMD nginx -c /app/nginx.conf & gunicorn -c ./gunicorn/dev.py
