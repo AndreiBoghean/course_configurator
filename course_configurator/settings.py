@@ -18,6 +18,7 @@ APP_DIR = BASE_DIR / "course_configurator"
 
 TEMPLATE_DIR = APP_DIR / "templates"
 STATIC_DIR = APP_DIR / "static"
+STATIC_ROOT = "/var/www/andreiboghean.com/static"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
