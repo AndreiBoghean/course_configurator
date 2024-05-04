@@ -44,6 +44,9 @@ WORKDIR /app/course_configurator/static/course_data
 RUN python parser.py
 WORKDIR /app
 
+# collect static files to directory for serving by nginx
+RUN python manage.py collectstatic
+
 # Switch to the non-privileged user to run the application.
 # USER appuser
 

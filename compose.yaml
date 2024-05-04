@@ -15,6 +15,9 @@ services:
     ports:
       - 8000:8000
       - 8443:8443
+# for testing.. pls ignore (yes this is bad practice ; yes no one is using this image except me.)
+#    volumes:
+#      - C:\Users\andre\Documents\upgrade2ssl\sslDir:/app/sslDir
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
